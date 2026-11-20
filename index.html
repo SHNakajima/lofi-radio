@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aether — Lofi Jazz Radio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="min-h-screen antialiased selection:bg-[#0c24f0] selection:text-white">
+
+    <div class="max-w-7xl mx-auto min-h-screen border-x border-white/15 flex flex-col justify-between bg-[#0a0b10] relative">
+
+        <!-- Top Navigation / Status Bar -->
+        <header
+            class="w-full border-b border-white/15 px-5 sm:px-8 py-3.5 flex flex-wrap items-center justify-between gap-5 bg-[#0a0b10] z-20">
+            <div class="flex items-center gap-3">
+                <span class="w-2.5 h-2.5 bg-[#0822e6] shrink-0" aria-hidden="true"></span>
+                <div class="flex items-baseline gap-3 flex-wrap">
+                    <h1 class="nous-display text-2xl tracking-tight text-white">Aether</h1>
+                    <p class="text-xs text-slate-400">ピアノと環境音のローファイラジオ</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <button id="btnPreloadAllBanks" type="button"
+                    class="border border-white/20 hover:border-white bg-[#0d0f17] px-3 py-1.5 flex items-center gap-2 text-xs text-slate-300 hover:text-white transition-colors duration-150"
+                    title="全テーマの楽器音源をブラウザに保存してオフライン再生に備えます">
+                    <span id="cacheStatusDot" class="w-1.5 h-1.5 bg-slate-500"></span>
+                    <span id="cacheStatusLabel">オフライン保存</span>
+                </button>
+
+                <button id="btnOpenAiTabQuick" type="button"
+                    class="border border-[#3d5afe]/60 hover:border-white bg-[#09123a] px-3 py-1.5 text-xs text-[#b6c8ff] hover:text-white transition-colors duration-150"
+                    title="AI作曲設定を開く">
+                    <span id="aiHeaderStatusLabel">AI作曲</span>
+                </button>
+
+                <div
+                    class="border border-white/20 bg-[#0d0f17] px-3 py-1.5 flex items-center gap-2 text-xs">
+                    <span id="liveIndicatorDot" class="w-2 h-2 bg-slate-500"></span>
+                    <span id="liveStatusText" class="text-slate-200">待機中</span>
+                    <span class="text-white/20">/</span>
+                    <span id="loopCounterText" class="text-slate-400 num-tabular">1/8 小節</span>
+                </div>
+
+                <button id="btnQuickHelp" type="button"
+                    class="border border-white/25 bg-[#0d0f17] hover:bg-white hover:text-black px-3 py-1.5 text-xs text-slate-200 transition-colors duration-150">
+                    使い方
+                </button>
+            </div>
+        </header>
+
+        <!-- Track Banner -->
+        <div
+            class="w-full border-b border-white/15 px-5 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+            <div>
+                <div class="mb-1.5">
+                    <span id="activeEnsembleBadge"
+                        class="inline-block px-2 py-0.5 border border-white/20 bg-[#0d0f17] text-[11px] text-slate-300">カフェ・トリオ</span>
+                </div>
+                <div class="flex items-baseline gap-2.5 flex-wrap">
+                    <h2 id="activeVibeTitle" class="nous-display text-3xl sm:text-4xl text-white">Kiki's Bakery Jazz</h2>
+                    <span id="activeVibeSub" class="text-xs sm:text-sm text-slate-400">木漏れ日のカフェ・ジャズ</span>
+                </div>
+                <p id="activeVibeDesc" class="text-xs sm:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+                    やわらかなフェルトピアノとウッドベースによる8小節の穏やかなジャズトリオ。長い余白を挟みながら静かに展開します。
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+                <button id="btnPlayToggle" type="button"
+                    class="bg-[#0822e6] hover:bg-[#1a36ff] text-white border border-[#3d5afe] px-5 py-2.5 text-xs font-medium transition-colors duration-150 flex items-center gap-2">
+                    <svg id="iconPlay" class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                        <polygon points="5,3 20,12 5,21" />
+                    </svg>
+                    <svg id="iconPause" class="w-3.5 h-3.5 fill-current hidden" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="5" y="3" width="4" height="18" />
+                        <rect x="15" y="3" width="4" height="18" />
+                    </svg>
+                    <span id="playBtnLabel">再生</span>
+                </button>
+
+                <button id="btnMutateSeed" type="button"
+                    class="bg-white text-black hover:bg-slate-200 px-4 py-2.5 text-xs font-medium transition-colors duration-150"
+                    title="新しい8小節のフレーズを生成 (M)">
+                    フレーズ変更
+                </button>
+
+                <button id="btnRandomVibe" type="button"
+                    class="border border-white/25 bg-transparent hover:border-white text-slate-200 hover:text-white px-3.5 py-2.5 text-xs transition-colors duration-150"
+                    title="ムードをランダムに切り替え">
+                    おまかせ
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Studio Grid -->
+        <main class="w-full flex-1 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/15">
+
+            <!-- Left Column (7 cols): Visualizer & Mood Grid -->
+            <section class="lg:col-span-7 flex flex-col divide-y divide-white/15">
+
+                <div class="p-5 sm:p-7 bg-[#0a0b10]">
+                    <div class="relative w-full h-64 sm:h-80 border border-white/25 bg-[#070a18] overflow-hidden">
+                        <canvas id="vibeCanvas" class="w-full h-full block cursor-crosshair"
+                            title="クリックするとピアノの音色を鳴らせます"></canvas>
+
+                        <!-- Sample Loading Overlay -->
+                        <div id="sampleLoaderOverlay"
+                            class="absolute inset-0 z-30 bg-[#070912] hidden flex-col items-center justify-center p-6 text-center border border-white/25">
+                            <div class="max-w-md w-full space-y-3">
+                                <div class="flex items-center justify-between text-xs text-[#8da4ff]">
+                                    <span id="loaderSourceBadge">音源を取得して保存中</span>
+                                    <span id="loaderCountText" class="num-tabular">0 / 0</span>
+                                </div>
+                                <div class="text-xl sm:text-2xl text-white font-medium" id="loaderTitleText">
+                                    音源を読み込み中
+                                </div>
+                                <div class="w-full h-2 bg-[#1b2030] border border-white/25 overflow-hidden">
+                                    <div id="loaderProgressBar" class="h-full bg-[#122eff] transition-[width] duration-150" style="width: 0%"></div>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-slate-400">
+                                    <span id="loaderDetailText" class="truncate">初回のみ音源を取得して保存します…</span>
+                                    <span id="loaderPercentText" class="text-white num-tabular">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top-Right Harmony & Section HUD -->
+                        <div
+                            class="absolute top-3 right-3.5 pointer-events-none bg-[#090b12] border border-white/25 px-3 py-2 text-right">
+                            <div id="sectionArcBadge" class="text-[11px] text-slate-400">主題</div>
+                            <div id="currentChordDisplay" class="nous-display text-2xl text-white tracking-wide mt-0.5">Fmaj9</div>
+                            <div id="currentScaleDisplay" class="text-[11px] text-[#8da4ff] num-tabular mt-0.5">F Major 9 · 62 BPM</div>
+                        </div>
+
+                        <!-- Bottom-Left 8-Bar Progress -->
+                        <div class="absolute bottom-3 left-3.5 pointer-events-none">
+                            <div id="stepDotsContainer"
+                                class="flex items-center gap-1 bg-[#090b12] px-2.5 py-1.5 border border-white/20">
+                                <!-- Populated by TS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Below-Canvas Bar -->
+                    <div class="mt-5 pt-3.5 border-t border-white/15 flex flex-wrap items-center justify-between gap-5">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs text-slate-400 mr-1">コード進行</span>
+                            <div id="chordProgressionRow" class="flex items-center gap-1.5 flex-wrap">
+                                <!-- Populated by TS -->
+                            </div>
+                            <button id="btnLockChord" type="button"
+                                class="border border-white/20 hover:border-white px-2.5 py-1 text-xs text-slate-300 hover:text-white transition-colors duration-150">
+                                <span id="lockChordLabel">進行: 自動</span>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-2.5 border border-white/20 bg-[#0d0f17] px-3 py-1.5 w-44">
+                            <span class="text-xs text-slate-400 shrink-0">音量</span>
+                            <input id="sliderMasterVol" type="range" min="0" max="100" value="80" class="studio-slider"
+                                aria-label="マスター音量" />
+                            <span id="valMasterVol" class="text-xs text-white w-9 text-right num-tabular">80%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mood Selection -->
+                <div class="p-5 sm:p-7 bg-[#0a0b10]">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                        <h3 class="nous-display text-2xl sm:text-3xl text-white">ムード</h3>
+
+                        <div class="flex items-center border border-white/20 bg-[#0d0f17] text-xs">
+                            <button type="button" data-filter="all"
+                                class="vibe-filter-btn px-3 py-1.5 bg-white text-black font-medium transition-colors duration-150">すべて</button>
+                            <button type="button" data-filter="focus"
+                                class="vibe-filter-btn px-3 py-1.5 text-slate-400 hover:text-white transition-colors duration-150">集中</button>
+                            <button type="button" data-filter="daily"
+                                class="vibe-filter-btn px-3 py-1.5 text-slate-400 hover:text-white transition-colors duration-150">日常</button>
+                            <button type="button" data-filter="relax"
+                                class="vibe-filter-btn px-3 py-1.5 text-slate-400 hover:text-white transition-colors duration-150">夜</button>
+                        </div>
+                    </div>
+
+                    <div id="vibeGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column (5 cols): Sound Console, Tape & Ambience, AI Composer, Timer, Saved Profiles -->
+            <aside class="lg:col-span-5 flex flex-col divide-y divide-white/15 bg-[#0b0d14]">
+
+                <div class="p-5 sm:p-7">
+                    <div class="flex items-baseline justify-between mb-4">
+                        <h3 class="nous-display text-2xl sm:text-3xl text-white">サウンド調整</h3>
+                        <button id="btnResetMixer" type="button"
+                            class="text-xs text-[#8da4ff] hover:text-white underline underline-offset-4 transition-colors duration-150">
+                            初期値に戻す
+                        </button>
+                    </div>
+
+                    <!-- 4-Tab Bar -->
+                    <div class="grid grid-cols-4 border border-white/20 bg-[#08090e] mb-5 text-xs">
+                        <button type="button" id="tabBtnMixer"
+                            class="studio-tab-btn py-2.5 px-1.5 bg-[#0822e6] text-white font-medium transition-colors duration-150 border-r border-white/15">
+                            ミキサー
+                        </button>
+                        <button type="button" id="tabBtnTape"
+                            class="studio-tab-btn py-2.5 px-1.5 text-slate-400 hover:text-white transition-colors duration-150 border-r border-white/15">
+                            質感・環境音
+                        </button>
+                        <button type="button" id="tabBtnAi"
+                            class="studio-tab-btn py-2.5 px-1.5 text-[#93c5fd] hover:text-white transition-colors duration-150 border-r border-white/15">
+                            AI作曲
+                        </button>
+                        <button type="button" id="tabBtnTimer"
+                            class="studio-tab-btn py-2.5 px-1.5 text-slate-400 hover:text-white transition-colors duration-150">
+                            タイマー
+                        </button>
+                    </div>
+
+                    <!-- TAB 1: Mixer -->
+                    <div id="panelMixer" class="space-y-5">
+                        <div class="divide-y divide-white/10 border-y border-white/15">
+
+                            <div class="py-3">
+                                <div class="flex justify-between items-baseline text-xs mb-2">
+                                    <span class="text-white font-medium">ピアノ（主旋律）</span>
+                                    <span id="valMelody" class="text-xs text-white num-tabular">88%</span>
+                                </div>
+                                <input id="sliderMelody" type="range" min="0" max="100" value="88"
+                                    class="studio-slider" />
+                            </div>
+
+                            <div class="py-3">
+                                <div class="flex justify-between items-baseline text-xs mb-2">
+                                    <span class="text-white font-medium">ピアノ（伴奏）</span>
+                                    <span id="valChords" class="text-xs text-white num-tabular">44%</span>
+                                </div>
+                                <input id="sliderChords" type="range" min="0" max="100" value="44"
+                                    class="studio-slider" />
+                            </div>
+
+                            <div class="py-3">
+                                <div class="flex justify-between items-baseline text-xs mb-2">
+                                    <span class="text-white font-medium">ウッドベース</span>
+                                    <span id="valBass" class="text-xs text-white num-tabular">48%</span>
+                                </div>
+                                <input id="sliderBass" type="range" min="0" max="100" value="48"
+                                    class="studio-slider" />
+                            </div>
+
+                            <div class="py-3">
+                                <div class="flex justify-between items-baseline text-xs mb-2">
+                                    <span class="text-white font-medium">ブラシ・ドラム</span>
+                                    <span id="valDrums" class="text-xs text-white num-tabular">16%</span>
+                                </div>
+                                <input id="sliderDrums" type="range" min="0" max="100" value="16"
+                                    class="studio-slider" />
+                            </div>
+
+                            <div class="py-3 grid grid-cols-2 gap-5">
+                                <div>
+                                    <div class="flex justify-between items-baseline text-xs mb-2">
+                                        <span class="text-slate-300">テンポ</span>
+                                        <span id="valBpm" class="text-xs text-white num-tabular">62 BPM</span>
+                                    </div>
+                                    <input id="sliderBpm" type="range" min="48" max="82" value="62"
+                                        class="studio-slider" />
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-baseline text-xs mb-2">
+                                        <span class="text-slate-300">スウィング</span>
+                                        <span id="valSwing" class="text-xs text-white num-tabular">58%</span>
+                                    </div>
+                                    <input id="sliderSwing" type="range" min="50" max="72" value="58"
+                                        class="studio-slider" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Piano Acoustic Character Selector -->
+                        <div>
+                            <div class="text-xs text-slate-400 mb-2">ピアノの響き</div>
+                            <div class="flex border border-white/20 bg-[#08090e]">
+                                <button type="button" data-timbre="felt"
+                                    class="timbre-btn flex-1 py-2 px-2 text-xs bg-white text-black font-medium transition-colors duration-150 border-r border-white/15">
+                                    フェルト
+                                </button>
+                                <button type="button" data-timbre="concert"
+                                    class="timbre-btn flex-1 py-2 px-2 text-xs text-slate-400 hover:text-white transition-colors duration-150 border-r border-white/15">
+                                    グランド
+                                </button>
+                                <button type="button" data-timbre="chamber"
+                                    class="timbre-btn flex-1 py-2 px-2 text-xs text-slate-400 hover:text-white transition-colors duration-150">
+                                    室内楽（チェロ）
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: Tape Warmth & Ambient Environment -->
+                    <div id="panelTape" class="space-y-5 hidden">
+                        <div class="divide-y divide-white/10 border-y border-white/15">
+                            <div class="py-3">
+                                <div class="flex justify-between items-baseline text-xs mb-2">
+                                    <span class="text-white font-medium">音の柔らかさ</span>
+                                    <span id="valWarmth" class="text-xs text-white num-tabular">2.4 kHz</span>
+                                </div>
+                                <input id="sliderWarmth" type="range" min="900" max="4800" step="50" value="2400"
+                                    class="studio-slider" />
+                            </div>
+
+                            <div class="py-3">
+                                <div class="flex justify-between items-baseline text-xs mb-2">
+                                    <span class="text-white font-medium">テープの揺らぎ</span>
+                                    <span id="valWow" class="text-xs text-white num-tabular">12%</span>
+                                </div>
+                                <input id="sliderWow" type="range" min="0" max="100" value="12" class="studio-slider" />
+                            </div>
+
+                            <div class="py-3">
+                                <div class="flex justify-between items-baseline text-xs mb-2">
+                                    <span class="text-white font-medium">レコードノイズ</span>
+                                    <span id="valVinyl" class="text-xs text-white num-tabular">14%</span>
+                                </div>
+                                <input id="sliderVinyl" type="range" min="0" max="100" value="14"
+                                    class="studio-slider" />
+                            </div>
+
+                            <div class="py-3">
+                                <div class="flex justify-between items-baseline text-xs mb-2">
+                                    <span class="text-white font-medium">窓辺の雨音</span>
+                                    <span id="valRain" class="text-xs text-white num-tabular">16%</span>
+                                </div>
+                                <input id="sliderRain" type="range" min="0" max="100" value="16"
+                                    class="studio-slider" />
+                            </div>
+
+                            <div class="py-3 grid grid-cols-2 gap-5">
+                                <div>
+                                    <div class="flex justify-between items-baseline text-xs mb-2">
+                                        <span class="text-slate-300">部屋の空気感</span>
+                                        <span id="valAir" class="text-xs text-white num-tabular">15%</span>
+                                    </div>
+                                    <input id="sliderAir" type="range" min="0" max="100" value="15"
+                                        class="studio-slider" />
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-baseline text-xs mb-2">
+                                        <span class="text-slate-300">低域ノイズ</span>
+                                        <span id="valBrown" class="text-xs text-white num-tabular">8%</span>
+                                    </div>
+                                    <input id="sliderBrown" type="range" min="0" max="100" value="8"
+                                        class="studio-slider" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Gemini AI Composer -->
+                    <div id="panelAi" class="space-y-5 hidden">
+                        <div class="border border-white/20 bg-[#08090e] p-3.5 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-white">Gemini API 設定</span>
+                                <span id="aiKeyBadge"
+                                    class="text-[11px] px-2 py-0.5 border border-white/20 text-slate-300">未設定</span>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label for="inputGeminiKey" class="block text-xs text-slate-400">
+                                    APIキー（このブラウザ内のみに保存）
+                                </label>
+                                <div class="flex gap-2">
+                                    <input id="inputGeminiKey" type="password" placeholder="AIzaSy..."
+                                        class="flex-1 bg-[#0a0c14] border border-white/25 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white" />
+                                    <button id="btnSaveApiKey" type="button"
+                                        class="bg-white text-black hover:bg-slate-200 px-3 py-1.5 text-xs font-medium transition-colors duration-150">
+                                        保存
+                                    </button>
+                                    <button id="btnClearApiKey" type="button"
+                                        class="border border-white/25 hover:border-white px-2.5 py-1.5 text-xs text-slate-300 hover:text-white transition-colors duration-150"
+                                        title="APIキーを消去">
+                                        消去
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 pt-1">
+                                <div>
+                                    <label for="selectGeminiModel" class="block text-xs text-slate-400 mb-1">モデル</label>
+                                    <select id="selectGeminiModel"
+                                        class="w-full bg-[#0a0c14] border border-white/25 px-2 py-1.5 text-xs text-white focus:outline-none">
+                                        <option value="gemini-3.8-flash">gemini-3.8-flash（推奨）</option>
+                                        <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+                                        <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col justify-end">
+                                    <label
+                                        class="flex items-center gap-2 border border-white/20 bg-[#0a0c14] px-2.5 py-1.5 cursor-pointer">
+                                        <input id="chkAutoAiCompose" type="checkbox" class="accent-[#0822e6]" />
+                                        <span class="text-xs text-slate-200">8小節ごとに自動作曲</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Mood / Scene Prompt Input -->
+                        <div class="space-y-2.5">
+                            <label for="inputAiPrompt" class="block text-xs text-slate-300">曲のイメージ</label>
+                            <textarea id="inputAiPrompt" rows="2"
+                                placeholder="例: 雨上がりの夕暮れ、穏やかなワルツ調のピアノバラード。長い余白を挟んで。"
+                                class="w-full bg-[#08090e] border border-white/25 p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-white"></textarea>
+
+                            <!-- Quick Prompt Chips -->
+                            <div class="flex flex-wrap gap-1.5">
+                                <button type="button"
+                                    data-prompt="木漏れ日のベーカリー、ノスタルジックな6/8拍子感覚のカフェジャズ、歌うような高音ロングトーン"
+                                    class="ai-prompt-chip border border-white/15 hover:border-white bg-[#0d0f17] px-2.5 py-1 text-xs text-slate-300 hover:text-white transition-colors duration-150">
+                                    木漏れ日のカフェジャズ
+                                </button>
+                                <button type="button"
+                                    data-prompt="深夜2時の静かな書斎、叙情的なソロピアノ、切ない和声と長い休符"
+                                    class="ai-prompt-chip border border-white/15 hover:border-white bg-[#0d0f17] px-2.5 py-1 text-xs text-slate-300 hover:text-white transition-colors duration-150">
+                                    深夜の書斎ソロピアノ
+                                </button>
+                                <button type="button"
+                                    data-prompt="夏の海辺と白い雲、透明感あふれるリディアンスケールの室内楽ピアノとチェロ"
+                                    class="ai-prompt-chip border border-white/15 hover:border-white bg-[#0d0f17] px-2.5 py-1 text-xs text-slate-300 hover:text-white transition-colors duration-150">
+                                    夏の海辺の室内楽
+                                </button>
+                            </div>
+
+                            <button id="btnGenerateAiScore" type="button"
+                                class="w-full py-2.5 bg-[#0822e6] hover:bg-[#1a36ff] border border-[#3d5afe] text-white text-xs font-medium transition-colors duration-150 flex items-center justify-center">
+                                <span id="aiBtnLabel">新しい8小節を作曲して再生</span>
+                            </button>
+                            <div id="aiStatusMessage" class="text-xs text-slate-400 min-h-[1.25rem]"></div>
+                        </div>
+
+                        <!-- Saved AI Scores History -->
+                        <div class="pt-3 border-t border-white/15">
+                            <div class="text-xs text-slate-400 mb-2">保存したAI作曲</div>
+                            <div id="aiScoresList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                                <!-- Populated by TS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Focus / Pomodoro Timer -->
+                    <div id="panelTimer" class="space-y-5 hidden">
+                        <div class="border border-white/20 bg-[#08090e] p-4 flex items-center justify-between">
+                            <div>
+                                <span id="timerPhaseBadge"
+                                    class="inline-block text-xs px-2 py-0.5 border border-white/20 bg-[#0d0f17] text-slate-200">集中</span>
+                                <div id="timerDisplay" class="nous-display text-4xl text-white num-tabular mt-2">25:00</div>
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <button id="btnTimerStart" type="button"
+                                    class="px-4 py-2 bg-white text-black hover:bg-slate-200 text-xs font-medium transition-colors duration-150">
+                                    タイマー開始
+                                </button>
+                                <button id="btnTimerReset" type="button"
+                                    class="px-4 py-1.5 border border-white/25 hover:border-white text-xs text-slate-300 hover:text-white transition-colors duration-150">
+                                    リセット
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="text-xs text-slate-400 mb-2">時間設定（休憩中はピアノ独奏に切り替わります）</div>
+                            <div class="flex border border-white/20 bg-[#08090e]">
+                                <button type="button" data-work="25" data-break="5"
+                                    class="timer-preset-btn flex-1 py-2 px-2 text-xs bg-white text-black font-medium transition-colors duration-150 border-r border-white/15 num-tabular">
+                                    25分 / 5分
+                                </button>
+                                <button type="button" data-work="50" data-break="10"
+                                    class="timer-preset-btn flex-1 py-2 px-2 text-xs text-slate-400 hover:text-white transition-colors duration-150 border-r border-white/15 num-tabular">
+                                    50分 / 10分
+                                </button>
+                                <button type="button" data-work="90" data-break="15"
+                                    class="timer-preset-btn flex-1 py-2 px-2 text-xs text-slate-400 hover:text-white transition-colors duration-150 num-tabular">
+                                    90分 / 15分
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-3">
+                            <span>完了したセッション</span>
+                            <span id="completedSessionsCount" class="text-white num-tabular">0 回</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Saved Profiles Section -->
+                <div class="p-5 sm:p-7 flex-1 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="nous-display text-xl text-white">保存した設定</h4>
+                            <button id="btnSavePreset" type="button"
+                                class="border border-white/30 bg-[#0d0f17] hover:bg-white hover:text-black px-3 py-1.5 text-xs text-white transition-colors duration-150">
+                                現在の設定を保存
+                            </button>
+                        </div>
+
+                        <div id="savedPresetsList" class="grid grid-cols-1 gap-2">
+                            <!-- Populated by TS -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer
+            class="w-full border-t border-white/15 px-5 sm:px-8 py-4 bg-[#070910] flex flex-wrap items-center justify-between gap-6 text-xs text-slate-400">
+            <div class="flex items-center gap-5 flex-wrap">
+                <span><kbd class="px-1.5 py-0.5 border border-white/20 text-slate-300 mr-1">Space</kbd> 再生/停止</span>
+                <span><kbd class="px-1.5 py-0.5 border border-white/20 text-slate-300 mr-1">1–8</kbd> ムード切替</span>
+                <span><kbd class="px-1.5 py-0.5 border border-white/20 text-slate-300 mr-1">M</kbd> フレーズ変更</span>
+                <span><kbd class="px-1.5 py-0.5 border border-white/20 text-slate-300 mr-1">R</kbd> 雨音切替</span>
+            </div>
+            <div class="text-slate-400">Aether</div>
+        </footer>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="modalHelp" class="fixed inset-0 z-50 bg-black/80 hidden items-center justify-center p-4">
+        <div class="max-w-lg w-full bg-[#0b0d14] border border-white/40 p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-white/15 pb-3">
+                <h3 class="nous-display text-2xl text-white">使い方</h3>
+                <button id="btnCloseHelp" type="button" aria-label="閉じる"
+                    class="w-8 h-8 border border-white/25 hover:bg-white hover:text-black flex items-center justify-center text-slate-300 text-base transition-colors duration-150">×</button>
+            </div>
+            <ul class="space-y-3 text-xs text-slate-300 leading-relaxed list-disc list-inside">
+                <li><strong>再生と試聴</strong>：再生ボタン（または <kbd class="px-1 border border-white/20">Space</kbd>）で8小節のピアノジャズを無限に演奏します。中央の画面をクリックすると音階を試聴できます。</li>
+                <li><strong>ミキサーと環境音</strong>：右側のパネルで楽器バランス、テンポ、雨音やレコードノイズを好みに合わせて調整し、プリセットとして保存できます。</li>
+                <li><strong>AI作曲とオフライン保存</strong>：Gemini APIキーをお持ちの場合は「AI作曲」タブから情景に合わせた8小節の楽譜を生成できます。ヘッダーの「オフライン保存」で音源を事前キャッシュできます。</li>
+            </ul>
+            <div class="pt-3 border-t border-white/15 flex justify-end">
+                <button id="btnCloseHelpBottom" type="button"
+                    class="px-5 py-2 bg-[#0822e6] hover:bg-[#1a36ff] text-white text-xs font-medium transition-colors duration-150">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastBox"
+        class="fixed bottom-5 right-5 z-50 px-4 py-2.5 bg-[#061ec4] border border-white text-xs text-white opacity-0 pointer-events-none transition-[opacity,transform] duration-200 translate-y-2">
+        保存しました
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
